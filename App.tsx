@@ -8,7 +8,6 @@ import {
   TextInput,
   Alert,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Modal,
   FlatList,
@@ -16,6 +15,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PieChart } from 'react-native-chart-kit';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -34,6 +34,17 @@ const TimeBudgetApp = () => {
     daysPerWeek: '',
     hoursPerSession: ''
   });
+
+  // Initialize temp values when editing activity changes
+  useEffect(() => {
+    if (editingActivity) {
+      setTempEditValues({
+        name: editingActivity.name,
+        daysPerWeek: editingActivity.daysPerWeek.toString(),
+        hoursPerSession: editingActivity.hoursPerSession.toString()
+      });
+    }
+  }, [editingActivity]);
   
   const [view, setView] = useState('table'); // 'table' or 'chart'
 
@@ -132,17 +143,6 @@ const TimeBudgetApp = () => {
   };
 
   const EditActivityModal = () => {
-    // Initialize temp values when modal opens
-    useEffect(() => {
-      if (editingActivity) {
-        setTempEditValues({
-          name: editingActivity.name,
-          daysPerWeek: editingActivity.daysPerWeek.toString(),
-          hoursPerSession: editingActivity.hoursPerSession.toString()
-        });
-      }
-    }, [editingActivity]);
-
     const handleSave = () => {
       if (editingActivity) {
         updateActivity(editingActivity.id, 'name', tempEditValues.name);
@@ -332,158 +332,160 @@ const TimeBudgetApp = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f9fafb" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Weekly Time Budget</Text>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#f9fafb" />
         
-        {/* Summary Cards */}
-        <View style={styles.summaryRow}>
-          <View style={[
-            styles.summaryCard, 
-            styles.totalCard, 
-            { 
-              borderWidth: 4,
-              borderColor: getTotalHours() >= 168 ? '#065F46' : `rgba(6, 95, 70, ${getTotalHours() / 168})`,
-              borderStyle: getTotalHours() > 0 ? 'solid' : 'dashed'
-            }
-          ]}>
-            <Text style={styles.summaryLabel}>Allocated</Text>
-            <Text style={styles.summaryValue}>{getTotalHours()}h</Text>
-            <Text style={styles.progressSubtext}>of 168h total</Text>
-          </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Weekly Time Budget</Text>
           
-          <View style={[styles.summaryCard, styles.remainingCard]}>
-            <Text style={[styles.summaryLabel, styles.remainingCardText]}>Unallocated</Text>
-            <Text style={[styles.summaryValue, styles.remainingCardText]}>{getRemainingHours()}h</Text>
-            <Text style={[styles.progressSubtext, styles.remainingCardText]}>remaining</Text>
-          </View>
-        </View>
-
-        {/* View Toggle */}
-        <View style={styles.viewToggle}>
-          <TouchableOpacity
-            style={[styles.toggleButton, view === 'table' && styles.activeToggle]}
-            onPress={() => setView('table')}
-          >
-            <Text style={[styles.toggleText, view === 'table' && styles.activeToggleText]}>
-              Table
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleButton, view === 'chart' && styles.activeToggle]}
-            onPress={() => setView('chart')}
-          >
-            <Text style={[styles.toggleText, view === 'chart' && styles.activeToggleText]}>
-              Chart
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {view === 'table' ? (
-        <ScrollView style={styles.content}>
-          {/* Add Button */}
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowAddModal(true)}
-          >
-            <Text style={styles.addButtonText}>+ Add New Activity</Text>
-          </TouchableOpacity>
-
-          {/* Activities List */}
-          <FlatList
-            data={activities}
-            renderItem={renderActivityItem}
-            keyExtractor={(item) => item.id.toString()}
-            scrollEnabled={false}
-          />
-        </ScrollView>
-      ) : (
-        <ScrollView style={styles.content}>
-          <Text style={styles.chartTitle}>Time Distribution</Text>
-          
-          {activities.length > 0 && (
-            <View style={styles.chartContainer}>
-              <PieChart
-                data={getPieChartData()}
-                width={screenWidth - 40}
-                height={240}
-                chartConfig={{
-                  backgroundColor: 'transparent',
-                  backgroundGradientFrom: '#ffffff',
-                  backgroundGradientTo: '#ffffff',
-                  color: (opacity = 1) => `rgba(167, 139, 250, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(31, 41, 55, ${opacity})`,
-                  style: {
-                    borderRadius: 16,
-                  },
-                  decimalPlaces: 0,
-                }}
-                accessor="hours"
-                backgroundColor="transparent"
-                paddingLeft="15"
-                center={[10, 0]}
-                absolute={false}
-                hasLegend={true}
-                style={{
-                  borderRadius: 16,
-                  marginVertical: 8,
-                }}
-              />
+          {/* Summary Cards */}
+          <View style={styles.summaryRow}>
+            <View style={[
+              styles.summaryCard, 
+              styles.totalCard, 
+              { 
+                borderWidth: 4,
+                borderColor: getTotalHours() >= 168 ? '#065F46' : `rgba(6, 95, 70, ${getTotalHours() / 168})`,
+                borderStyle: getTotalHours() > 0 ? 'solid' : 'dashed'
+              }
+            ]}>
+              <Text style={styles.summaryLabel}>Allocated</Text>
+              <Text style={styles.summaryValue}>{getTotalHours()}h</Text>
+              <Text style={styles.progressSubtext}>of 168h total</Text>
             </View>
-          )}
+            
+            <View style={[styles.summaryCard, styles.remainingCard]}>
+              <Text style={[styles.summaryLabel, styles.remainingCardText]}>Unallocated</Text>
+              <Text style={[styles.summaryValue, styles.remainingCardText]}>{getRemainingHours()}h</Text>
+              <Text style={[styles.progressSubtext, styles.remainingCardText]}>remaining</Text>
+            </View>
+          </View>
 
-          {/* Activity Breakdown */}
-          <View style={styles.breakdown}>
-            <Text style={styles.breakdownTitle}>Activity Breakdown</Text>
-            {activities.map((activity, index) => (
-              <View key={index} style={styles.breakdownItem}>
-                <View style={styles.breakdownLeft}>
-                  <View style={[styles.colorDot, { backgroundColor: activity.color }]} />
-                  <View style={styles.activityInfo}>
-                    <Text style={styles.breakdownName}>{activity.name}</Text>
-                    <Text style={styles.breakdownDetails}>
-                      {activity.hoursPerSession}h × {activity.daysPerWeek} days
+          {/* View Toggle */}
+          <View style={styles.viewToggle}>
+            <TouchableOpacity
+              style={[styles.toggleButton, view === 'table' && styles.activeToggle]}
+              onPress={() => setView('table')}
+            >
+              <Text style={[styles.toggleText, view === 'table' && styles.activeToggleText]}>
+                Table
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toggleButton, view === 'chart' && styles.activeToggle]}
+              onPress={() => setView('chart')}
+            >
+              <Text style={[styles.toggleText, view === 'chart' && styles.activeToggleText]}>
+                Chart
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {view === 'table' ? (
+          <ScrollView style={styles.content}>
+            {/* Add Button */}
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setShowAddModal(true)}
+            >
+              <Text style={styles.addButtonText}>+ Add New Activity</Text>
+            </TouchableOpacity>
+
+            {/* Activities List */}
+            <FlatList
+              data={activities}
+              renderItem={renderActivityItem}
+              keyExtractor={(item) => item.id.toString()}
+              scrollEnabled={false}
+            />
+          </ScrollView>
+        ) : (
+          <ScrollView style={styles.content}>
+            <Text style={styles.chartTitle}>Time Distribution</Text>
+            
+            {activities.length > 0 && (
+              <View style={styles.chartContainer}>
+                <PieChart
+                  data={getPieChartData()}
+                  width={screenWidth - 40}
+                  height={240}
+                  chartConfig={{
+                    backgroundColor: 'transparent',
+                    backgroundGradientFrom: '#ffffff',
+                    backgroundGradientTo: '#ffffff',
+                    color: (opacity = 1) => `rgba(167, 139, 250, ${opacity})`,
+                    labelColor: (opacity = 1) => `rgba(31, 41, 55, ${opacity})`,
+                    style: {
+                      borderRadius: 16,
+                    },
+                    decimalPlaces: 0,
+                  }}
+                  accessor="hours"
+                  backgroundColor="transparent"
+                  paddingLeft="15"
+                  center={[10, 0]}
+                  absolute={false}
+                  hasLegend={true}
+                  style={{
+                    borderRadius: 16,
+                    marginVertical: 8,
+                  }}
+                />
+              </View>
+            )}
+
+            {/* Activity Breakdown */}
+            <View style={styles.breakdown}>
+              <Text style={styles.breakdownTitle}>Activity Breakdown</Text>
+              {activities.map((activity, index) => (
+                <View key={index} style={styles.breakdownItem}>
+                  <View style={styles.breakdownLeft}>
+                    <View style={[styles.colorDot, { backgroundColor: activity.color }]} />
+                    <View style={styles.activityInfo}>
+                      <Text style={styles.breakdownName}>{activity.name}</Text>
+                      <Text style={styles.breakdownDetails}>
+                        {activity.hoursPerSession}h × {activity.daysPerWeek} days
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.breakdownRight}>
+                    <Text style={styles.breakdownHours}>
+                      {calculateHoursPerWeek(activity.daysPerWeek, activity.hoursPerSession)}h
+                    </Text>
+                    <Text style={styles.breakdownPercent}>
+                      {(((calculateHoursPerWeek(activity.daysPerWeek, activity.hoursPerSession)) / 168) * 100).toFixed(1)}%
                     </Text>
                   </View>
                 </View>
-                <View style={styles.breakdownRight}>
-                  <Text style={styles.breakdownHours}>
-                    {calculateHoursPerWeek(activity.daysPerWeek, activity.hoursPerSession)}h
-                  </Text>
-                  <Text style={styles.breakdownPercent}>
-                    {(((calculateHoursPerWeek(activity.daysPerWeek, activity.hoursPerSession)) / 168) * 100).toFixed(1)}%
-                  </Text>
-                </View>
-              </View>
-            ))}
-            {getRemainingHours() > 0 && (
-              <View style={styles.breakdownItem}>
-                <View style={styles.breakdownLeft}>
-                  <View style={[styles.colorDot, { backgroundColor: '#E5E7EB' }]} />
-                  <View style={styles.activityInfo}>
-                    <Text style={styles.breakdownName}>Unallocated</Text>
-                    <Text style={styles.breakdownDetails}>Remaining time</Text>
+              ))}
+              {getRemainingHours() > 0 && (
+                <View style={styles.breakdownItem}>
+                  <View style={styles.breakdownLeft}>
+                    <View style={[styles.colorDot, { backgroundColor: '#E5E7EB' }]} />
+                    <View style={styles.activityInfo}>
+                      <Text style={styles.breakdownName}>Unallocated</Text>
+                      <Text style={styles.breakdownDetails}>Remaining time</Text>
+                    </View>
+                  </View>
+                  <View style={styles.breakdownRight}>
+                    <Text style={styles.breakdownHours}>{getRemainingHours()}h</Text>
+                    <Text style={styles.breakdownPercent}>
+                      {((getRemainingHours() / 168) * 100).toFixed(1)}%
+                    </Text>
                   </View>
                 </View>
-                <View style={styles.breakdownRight}>
-                  <Text style={styles.breakdownHours}>{getRemainingHours()}h</Text>
-                  <Text style={styles.breakdownPercent}>
-                    {((getRemainingHours() / 168) * 100).toFixed(1)}%
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-        </ScrollView>
-      )}
+              )}
+            </View>
+          </ScrollView>
+        )}
 
-      <AddActivityModal />
-      <EditActivityModal />
-    </SafeAreaView>
+        <AddActivityModal />
+        <EditActivityModal />
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 };
 
@@ -528,11 +530,9 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   totalCard: {
-    background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
     backgroundColor: '#059669',
   },
   remainingCard: {
-    background: 'linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%)',
     backgroundColor: '#F1F5F9',
   },
   remainingCardText: {
