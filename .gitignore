@@ -29,6 +29,7 @@ build/
 .gradle
 local.properties
 .gradle.properties
+android/keystore.properties
 *.iml
 *.hprof
 .cxx/

@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
@@ -72,6 +75,23 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def readSigningValue = { localKey, legacyKey ->
+    keystoreProperties.getProperty(localKey) ?:
+        System.getenv(legacyKey) ?:
+        (project.hasProperty(legacyKey) ? project.property(legacyKey) : null)
+}
+
+def releaseStoreFile = readSigningValue("storeFile", "MYAPP_UPLOAD_STORE_FILE")
+def releaseStorePassword = readSigningValue("storePassword", "MYAPP_UPLOAD_STORE_PASSWORD")
+def releaseKeyAlias = readSigningValue("keyAlias", "MYAPP_UPLOAD_KEY_ALIAS")
+def releaseKeyPassword = readSigningValue("keyPassword", "MYAPP_UPLOAD_KEY_PASSWORD")
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -82,8 +102,8 @@ android {
         applicationId "com.timebudgetapp2"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 6
+        versionName "2.4"
     }
     signingConfigs {
         debug {
@@ -93,11 +113,11 @@ android {
             keyPassword 'android'
         }
         release {
-            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
-                storeFile file(MYAPP_UPLOAD_STORE_FILE)
-                storePassword MYAPP_UPLOAD_STORE_PASSWORD
-                keyAlias MYAPP_UPLOAD_KEY_ALIAS
-                keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+            if (releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
             }
         }
     }
